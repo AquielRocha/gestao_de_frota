@@ -1,12 +1,13 @@
-# main.py
 import streamlit as st
+
+# Este comando precisa ser o primeiro a gerar saída
+st.set_page_config(page_title="Gestão de Frota", layout="wide")
+
+# Após configurar a página, importe os outros módulos
 import components.header as header
 from pages.home import main as home_main
 
-# Configuração da página
-st.set_page_config(page_title="Gestão de Frota", layout="wide")
-
-# Esconde o menu padrão do Streamlit
+# Esconde o menu padrão do Streamlit e a sidebar
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -24,13 +25,13 @@ hide_sidebar_style = """
     </style>
 """
 st.markdown(hide_sidebar_style, unsafe_allow_html=True)
+
 # Renderiza o cabeçalho customizado
 header.render_header()
 
 # Captura os parâmetros da URL sem chamar a função
 query_params = st.query_params
 page = query_params.get("page", ["home"])[0]
-
 
 if page == "home":
     home_main()
