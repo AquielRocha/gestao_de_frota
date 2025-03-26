@@ -1,5 +1,4 @@
 import streamlit as st
-import components.header as header
 
 # Esconde a barra lateral do Streamlit
 hide_sidebar_style = """
@@ -22,7 +21,6 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 def main():
-    header.render_header()
 
     st.title("Formulário de Preenchimento de Frota")
 

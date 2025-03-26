@@ -7,3 +7,4 @@ matplotlib
 streamlit-pdf-viewer
 xhtml2pdf
 plotly
+streamlit-navigation-bar

@@ -1,5 +1,4 @@
 import streamlit as st
-import components.header as header
 
 
 hide_sidebar_style = """
@@ -20,7 +19,6 @@ hide_streamlit_style = """
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 def main():
-    header.render_header()
 
     
     
