@@ -1,5 +1,3 @@
-# app/pages/veiculos.py
-
 import streamlit as st
 import pandas as pd
 from app.services.auth import check_user_logged_in

@@ -9,5 +9,5 @@ xhtml2pdf
 plotly
 streamlit-navigation-bar
 passlib
-bcrypt
+bcrypt==3.2.0
 hydralit_components
