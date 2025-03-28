@@ -1,20 +1,20 @@
+# app/services/frota_service.py
+
 import sqlite3
 
-def inserir_veiculo(usuario_id, setor_id, tipo_bem, subtipo_bem, placa, numero_chassi,
-                    renavam, numero_patrimonio, proprietario, marca, modelo,
-                    ano_fabricacao, ano_modelo, cor, combustivel, status,
-                    observacao, adicionar_mais):
-    conn = sqlite3.connect("app/database/veiculos.db")
-    conn.execute('''
-        INSERT INTO frota_2025 (
-            usuario_id, setor_id, tipo_bem, subtipo_bem, placa, numero_chassi,
-            renavam, numero_patrimonio, proprietario, marca, modelo,
-            ano_fabricacao, ano_modelo, cor, combustivel, status,
-            observacao, adicionar_mais
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (usuario_id, setor_id, tipo_bem, subtipo_bem, placa, numero_chassi,
-          renavam, numero_patrimonio, proprietario, marca, modelo,
-          ano_fabricacao, ano_modelo, cor, combustivel, status,
-          observacao, adicionar_mais))
-    conn.commit()
+def get_connection(db_path="app/database/veiculos.db"):
+    conn = sqlite3.connect(db_path, check_same_thread=False)
+    return conn
+
+def get_veiculos_by_setor(setor):
+    """
+    Retorna todas as colunas dos veículos da tabela 'frota' cujo
+    'centro_custo' seja igual ao setor informado.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM frota WHERE centro_custo = ?", (setor,))
+    rows = cursor.fetchall()
+    columns = [desc[0] for desc in cursor.description]
     conn.close()
+    return rows, columns

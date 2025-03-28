@@ -8,3 +8,6 @@ streamlit-pdf-viewer
 xhtml2pdf
 plotly
 streamlit-navigation-bar
+passlib
+bcrypt
+hydralit_components

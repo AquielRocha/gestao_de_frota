@@ -1,5 +1,8 @@
 import streamlit as st
+from app.services.auth import check_user_logged_in
 
-def show():
-    st.title("Bem-vindo ao Sistema de Gestão de Frota")
-    st.markdown("Sistema simples para cadastro e visualização de dados da frota 2024 e 2025.")
+def run():
+    check_user_logged_in()
+    st.title("Página Home")
+    st.write(f"Bem-vindo, {st.session_state.user['nome']}!")
+    st.write("Conteúdo exclusivo para usuários logados.")
