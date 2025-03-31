@@ -1,52 +1,64 @@
 import streamlit as st
 import hydralit_components as hc
 from app.services.auth import login_user, get_user_info, create_tables
-from app.pages import home, preenchimento, sobre, register, veiculos
+from app.pages import home, preenchimento, sobre, veiculos
+from app.pages import register
 import sqlite3
-
-# Tentativa de usar lottie (opcional). Para usar, descomente e instale streamlit-lottie:
-# from streamlit_lottie import st_lottie
 
 # Configurações iniciais de layout
 st.set_page_config(layout='wide', initial_sidebar_state='collapsed')
 
-# Esconde o menu default do Streamlit e o rodapé
+
+
 hide_streamlit_style = """
     <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-
-    /* Remove padding extra */
-    .block-container {
-        padding: 0rem 1rem;
+    /* Esconde menus do Streamlit */
+    #MainMenu, header, footer, [data-testid="stDeployButton"] {
+        visibility: hidden !important;
+        display: none !important;
     }
 
-    /* Fundo em gradiente para a página toda */
+ .stDeployButton {
+            visibility: hidden;
+        }
+    
+    
+    .block-container {
+        padding: 0rem 1rem !important;
+    }
+
     .stApp {
         background: linear-gradient(135deg, #E8F0F8 0%, #FFFFFF 100%);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
     }
 
-    /* Card principal */
-    .login-card {
+    .login-wrapper {
         background-color: #ffffff;
-        border-radius: 15px;
-        padding: 2rem;
+        border-radius: 12px;
+        padding: 1.5rem 1rem;
         width: 100%;
-        max-width: 400px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-        margin-top: 2rem;
-    }
-
-    /* Título do card */
-    .login-title {
+        max-width: 260px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         text-align: center;
-        font-weight: 700;
-        font-size: 1.5rem;
-        color: #333;
-        margin-bottom: 1rem;
     }
 
-    /* Divisória estilizada */
+    .login-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+
+    .login-sub {
+        font-size: 0.8rem;
+        color: #666;
+        margin-bottom: 1.2rem;
+    }
+
     .login-hr {
         border: none;
         height: 1px;
@@ -54,58 +66,60 @@ hide_streamlit_style = """
         margin: 1rem 0;
     }
 
-    /* Texto centralizado */
     .login-text-center {
-        text-align: center;
-        margin-top: 1rem;
+        margin-bottom: 0.3rem;
+        font-size: 0.8rem;
+        color: #444;
     }
 
-    /* Botão gradiente */
-    .gradient-button {
-        background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
-        border: none;
-        color: #fff;
-        padding: 0.6rem 1rem;
+    input[type="text"], input[type="password"] {
+        max-width: 200px !important;
+        padding: 0.3rem 0.4rem !important;
+        font-size: 0.8rem !important;
+        margin: 0 auto;
+    }
+
+    button[kind="primary"], .stButton button {
+        max-width: 200px;
+        padding: 0.35rem 1rem;
+        font-size: 0.8rem;
         border-radius: 5px;
-        cursor: pointer;
-        font-size: 1rem;
-        font-weight: 600;
-        width: 100%;
-        margin-top: 1rem;
+        margin: 0.4rem auto 0 auto;
+        display: block;
     }
-    .gradient-button:hover {
-        opacity: 0.9;
-    }
-
     </style>
 """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-# Inicializa as tabelas (incluindo 'usuario' e 'frota')
+# Inicializa as tabelas
 create_tables()
 
-# (Opcional) Insere dados de exemplo na tabela 'frota'
+# Inserir dados de exemplo se necessário
 def insert_dummy_frota():
     conn = sqlite3.connect("app/database/veiculos.db", check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM frota")
     count = cursor.fetchone()[0]
     if count == 0:
-        cursor.execute("INSERT INTO frota (centro_custo, placa, modelo) VALUES (?, ?, ?)", ("Setor A", "ABC-1234", "Modelo X"))
-        cursor.execute("INSERT INTO frota (centro_custo, placa, modelo) VALUES (?, ?, ?)", ("Setor B", "DEF-5678", "Modelo Y"))
-        cursor.execute("INSERT INTO frota (centro_custo, placa, modelo) VALUES (?, ?, ?)", ("Setor A", "GHI-9012", "Modelo Z"))
+        cursor.executemany("""
+            INSERT INTO frota (centro_custo, placa, modelo) 
+            VALUES (?, ?, ?)
+        """, [
+            ("Setor A", "ABC-1234", "Modelo X"),
+            ("Setor B", "DEF-5678", "Modelo Y"),
+            ("Setor A", "GHI-9012", "Modelo Z")
+        ])
         conn.commit()
     conn.close()
 
 insert_dummy_frota()
 
 def main():
-    # Inicializa a variável de sessão para o usuário
     if "user" not in st.session_state:
         st.session_state.user = None
+    if "show_registration" not in st.session_state:
+        st.session_state.show_registration = False
 
     if st.session_state.user:
-        # Navbar (quando logado)
         menu_data = [
             {'icon': "🏠", 'label': "Home"},
             {'icon': "📝", 'label': "Formulário"},
@@ -113,23 +127,19 @@ def main():
             {'icon': "🚗", 'label': "Visualizar Equipamentos"},
             {'icon': "🔓", 'label': "Logout"}
         ]
-
-        over_theme = {
-            'menu_background': '#1f3b4d',  
-            'txc_inactive': '#FFFFFF',    
-            'txc_active': '#00c0f2',      
-            'option_active': '#395870',   
-        }
-
         selected = hc.nav_bar(
             menu_definition=menu_data,
-            override_theme=over_theme,
-            home_name='Home',            
+            override_theme={
+                'menu_background': '#1f3b4d',
+                'txc_inactive': '#FFFFFF',
+                'txc_active': '#00c0f2',
+                'option_active': '#395870',
+            },
+            home_name='Home',
             sticky_nav=True,
             sticky_mode='pinned',
             hide_streamlit_markers=True
         )
-
         if selected == "Home":
             home.run()
         elif selected == "Formulário":
@@ -141,53 +151,31 @@ def main():
         elif selected == "Logout":
             st.session_state.user = None
             st.rerun()
-
     else:
-        # Layout do login em duas colunas:
-        col_left, col_right = st.columns(2)
+        if st.session_state.show_registration:
+            register.run()
+        else:
+            with st.container():
+                st.markdown("<div class='login-wrapper'>", unsafe_allow_html=True)
+                st.markdown("<div class='login-title'>Bem-vindo(a)!</div>", unsafe_allow_html=True)
+                st.markdown("<div class='login-sub'>Gerencie de forma prática e eficiente todos os seus veículos e equipamentos.</div>", unsafe_allow_html=True)
+                
+                with st.form("login_form"):
+                    email = st.text_input("Email", key="login_email")
+                    senha = st.text_input("Senha", type="password", key="login_senha")
+                    if st.form_submit_button("Entrar"):
+                        if login_user(email, senha):
+                            st.session_state.user = get_user_info(email)
+                            st.rerun()
+                        else:
+                            st.error("Credenciais inválidas!")
 
-        # (Opcional) Imagem ou lottie do lado esquerdo
-        with col_left:
-            st.markdown("<br><br><br>", unsafe_allow_html=True)  # Espaço extra
-            st.markdown("""
-                <h1 style="font-size:2.5rem; margin-top: 2rem; color: #333;">
-                  Bem-vindo(a)!
-                </h1>
-                <p style="font-size:1.1rem; margin-bottom: 2rem; color: #555; max-width: 80%;">
-                  Gerencie de forma prática e eficiente todos os seus veículos e equipamentos. 
-                  Faça login para continuar.
-                </p>
-            """, unsafe_allow_html=True)
-
-            # Se quiser usar lottie animation
-            # lottie_json = ... # Carregue seu JSON
-            # st_lottie(lottie_json, height=300)
-
-        # Card de Login na coluna da direita
-        with col_right:
-            st.markdown("<div class='login-card'>", unsafe_allow_html=True)
-            st.markdown("<div class='login-title'>Acesso ao Sistema</div>", unsafe_allow_html=True)
-
-            email = st.text_input("Email", key="login_email")
-            senha = st.text_input("Senha", type="password", key="login_senha")
-
-            # Botão de Login com CSS gradiente
-            if st.button("Entrar", key="btn_login", help="Clique para entrar"):
-                if login_user(email, senha):
-                    user_info = get_user_info(email)
-                    st.session_state.user = user_info
+                st.markdown("<hr class='login-hr'/>", unsafe_allow_html=True)
+                st.markdown("<p class='login-text-center'>Não possui conta?</p>", unsafe_allow_html=True)
+                if st.button("Criar Conta", key="btn_register"):
+                    st.session_state.show_registration = True
                     st.rerun()
-                else:
-                    st.error("Credenciais inválidas!")
-
-            st.markdown("<hr class='login-hr'/>", unsafe_allow_html=True)
-            st.markdown("<p class='login-text-center'>Não possui conta? Cadastre-se abaixo:</p>", unsafe_allow_html=True)
-
-            # Botão "Criar Conta" também com estilo gradiente
-            if st.button("Criar Conta", key="btn_register"):
-                register.run()
-
-            st.markdown("</div>", unsafe_allow_html=True)  # Fecha o card
+                st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
