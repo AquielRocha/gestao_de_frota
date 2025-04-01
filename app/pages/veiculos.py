@@ -9,7 +9,7 @@ def run():
     
     # O setor armazenado no login do usuário é usado para filtrar os veículos
     setor = st.session_state.user["setor_id"]
-    st.title(f"Veículos do Setor: {setor}")
+    st.title(f"Equipamentos 2025")
     
     # Busca os veículos da tabela 'frota' para o setor logado
     rows, columns = get_veiculos_by_setor(setor)

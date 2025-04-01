@@ -54,9 +54,9 @@ def main():
 
     if st.session_state.user:
         menu_data = [
+            {'icon': "🚗", 'label': "Visualizar Equipamentos"},
             {'icon': "📝", 'label': "Formulário"},
             {'icon': "ℹ️", 'label': "Sobre"},
-            {'icon': "🚗", 'label': "Visualizar Equipamentos"},
             {'icon': "🔓", 'label': "Logout"}
         ]
         selected = hc.nav_bar(
