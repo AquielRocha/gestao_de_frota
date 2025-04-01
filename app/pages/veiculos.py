@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from app.services.auth import check_user_logged_in
-from app.services.frota_service import get_veiculos_by_setor
+from app.services.frota_2025_service import get_veiculos_by_setor_ano
 
 def run():
     # Verifica se o usuário está logado
@@ -12,7 +12,7 @@ def run():
     st.title(f"Equipamentos 2025")
     
     # Busca os veículos da tabela 'frota' para o setor logado
-    rows, columns = get_veiculos_by_setor(setor)
+    rows, columns = get_veiculos_by_setor_ano(setor)
     
     if rows:
         df = pd.DataFrame(rows, columns=columns)

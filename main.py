@@ -4,7 +4,10 @@ from app.services.auth import login_user, get_user_info, create_tables
 from app.pages import home, preenchimento, sobre, veiculos
 from app.pages import register
 import sqlite3
+import base64
+from pathlib import Path
 
+from app.pages import exportacao
 # Configurações iniciais de layout
 st.set_page_config(layout='wide', initial_sidebar_state='collapsed')
 
@@ -19,11 +22,16 @@ header {visibility: hidden;}
 .block-container {
     padding-top: 0 !important;
 }
+
 </style>
 """
 
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # Inicializa as tabelas
+
+
+
+
 create_tables()
 
 # Inserir dados de exemplo se necessário
@@ -56,6 +64,7 @@ def main():
         menu_data = [
             {'icon': "🚗", 'label': "Visualizar Equipamentos"},
             {'icon': "📝", 'label': "Formulário"},
+            {'icon': "📤", 'label': "Exportação"},
             {'icon': "ℹ️", 'label': "Sobre"},
             {'icon': "🔓", 'label': "Logout"}
         ]
@@ -76,6 +85,8 @@ def main():
             home.run()
         elif selected == "Formulário":
             preenchimento.run()
+        elif selected == "Exportação":
+            exportacao.run()
         elif selected == "Sobre":
             sobre.run()
         elif selected == "Visualizar Equipamentos":
