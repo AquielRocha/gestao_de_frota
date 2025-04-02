@@ -9,6 +9,23 @@ from app.services.auth import check_user_logged_in
 from app.services.frota_service import get_veiculos_by_setor
 
 def run():
+    # Customização do botão "Salvar todos os itens" usando CSS em HTML
+    st.markdown(
+        """
+        <style>
+        div.stButton > button#save_button {
+            background-color: #007BFF !important;
+            color: white !important;
+            opacity: 1 !important;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-weight: bold;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     # 1) Verifica se o usuário está logado
     check_user_logged_in() 
     usuario = st.session_state.user
@@ -57,7 +74,7 @@ def run():
             "status": "Status",
             "cor": "Cor",
             "obs": "Observações",
-            "proprietario": "Proprietário"  # Caso queira renomear também
+            "proprietario": "Proprietário"
         }, inplace=True)
 
         # Abre conexão para buscar quais itens já existem na frota_2025
@@ -175,7 +192,6 @@ def run():
             else:
                 proprietario_final = proprietario_opt.strip() if proprietario_opt else (proprietario_sel or None)
 
-            # Exibe o campo de Placa somente se o checkbox estiver marcado
             if tem_placa:
                 placa = st.text_input("Placa", max_chars=8, value=placa_sel)
             else:
@@ -442,33 +458,18 @@ def run():
                 
                 col_edit, col_del = st.columns(2)
                 with col_edit:
-                    if st.button(f"Editar #{i}", key=f"btn_edit_{i}"):
+                    if st.button(f"Editar {i}", key=f"btn_edit_{i}"):
                         st.session_state["edit_index"] = i - 1
                 with col_del:
-                    if st.button(f"Excluir #{i}", key=f"btn_del_{i}"):
+                    if st.button(f"Excluir {i}", key=f"btn_del_{i}"):
                         st.session_state["frota_temp"].pop(i - 1)
                         st.success(f"Item #{i} removido.")
                         st.rerun()
                 st.write("---")
 
-    # Destaque para o botão de salvar todos os itens
+    # Destaque para o botão de salvar todos os itens com a personalização em HTML
     if len(st.session_state["frota_temp"]) > 0:
         st.markdown("---")
-        st.markdown("""
-        <style>
-        div.stButton > button#save_button {
-            background-color: #007BFF !important;
-            color: white !important;
-            font-size: 16px !important;
-            padding: 10px 20px !important;
-            border-radius: 5px !important;
-            width: 100%;
-        }
-        div.stButton > button#save_button:hover {
-            background-color: #0056b3 !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
         if st.button("Salvar todos os itens", key="save_button", help="Clique para salvar todos os itens adicionados", use_container_width=True):
             try:
                 conn = sqlite3.connect("app/database/veiculos.db")
