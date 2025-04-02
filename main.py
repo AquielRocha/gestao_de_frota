@@ -62,8 +62,8 @@ def main():
 
     if st.session_state.user:
         menu_data = [
-            {'icon': "🚗", 'label': "Visualizar Equipamentos"},
             {'icon': "📝", 'label': "Formulário"},
+            {'icon': "🚗", 'label': "Visualizar Equipamentos"},
             {'icon': "📤", 'label': "Exportação"},
             {'icon': "ℹ️", 'label': "Sobre"},
             {'icon': "🔓", 'label': "Logout"}
