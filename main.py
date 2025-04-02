@@ -1,37 +1,83 @@
 import streamlit as st
 import hydralit_components as hc
 from app.services.auth import login_user, get_user_info, create_tables
-from app.pages import home, preenchimento, sobre, veiculos
-from app.pages import register
+from app.pages import home, preenchimento, sobre, veiculos, register
 import sqlite3
 import base64
 from pathlib import Path
-
 from app.pages import exportacao
+
 # Configurações iniciais de layout
 st.set_page_config(layout='wide', initial_sidebar_state='collapsed')
 
+# CSS global para esconder elementos do Streamlit e definir estilos básicos
 hide_streamlit_style = """
 <style>
-/* Esconde o menu de navegação, rodapé e cabeçalho padrão do Streamlit */
+/* Esconde o menu padrão, rodapé e cabeçalho */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
 
-/* Remove o espaço padrão (padding superior) do container onde fica o conteúdo */
+/* Remove o padding superior padrão */
 .block-container {
     padding-top: 0 !important;
 }
 
+
+
+.login-card {
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    width: 350px;
+    text-align: center;
+}
+
+.login-title {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.login-sub {
+    font-size: 14px;
+    margin-bottom: 20px;
+    color: #666;
+}
+
+.login-hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 20px 0;
+}
+
+.login-text-center {
+    font-size: 14px;
+    color: #666;
+}
+
+/* Estilização dos botões */
+button[kind] {
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    background-color: #007BFF;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+button[kind]:hover {
+    background-color: #0056b3;
+}
 </style>
 """
-
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # Inicializa as tabelas
-
-
-
-
 create_tables()
 
 # Inserir dados de exemplo se necessário
@@ -60,6 +106,7 @@ def main():
     if "show_registration" not in st.session_state:
         st.session_state.show_registration = False
 
+    # Se o usuário já estiver logado, exibe o menu principal
     if st.session_state.user:
         menu_data = [
             {'icon': "📝", 'label': "Formulário"},
@@ -74,7 +121,6 @@ def main():
                 'menu_background': '#1f3b4d',
                 'txc_inactive': '#FFFFFF',
                 'txc_active': '#00c0f2',
-                # 'option_active': '#395870',
             },
             home_name='Home',
             sticky_nav=True,
@@ -95,9 +141,11 @@ def main():
             st.session_state.user = None
             st.rerun()
     else:
+        # Se estiver na tela de registro, chama a função do register
         if st.session_state.show_registration:
             register.run()
         else:
+            # Tela de login com HTML/CSS
             with st.container():
                 st.markdown("<div class='login-wrapper'>", unsafe_allow_html=True)
                 st.markdown("<div class='login-title'>Bem-vindo(a)!</div>", unsafe_allow_html=True)
@@ -112,13 +160,13 @@ def main():
                             st.rerun()
                         else:
                             st.error("Credenciais inválidas!")
-
+                
                 st.markdown("<hr class='login-hr'/>", unsafe_allow_html=True)
                 st.markdown("<p class='login-text-center'>Não possui conta?</p>", unsafe_allow_html=True)
                 if st.button("Criar Conta", key="btn_register"):
                     st.session_state.show_registration = True
                     st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("</div></div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

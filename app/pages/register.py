@@ -5,7 +5,6 @@ def run():
  
     st.markdown("""
     <div style="display: flex; justify-content: center;">
-      <div class="login-card">
         <div class="login-title">Crie sua Conta</div>
     """, unsafe_allow_html=True)
 
