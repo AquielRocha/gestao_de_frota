@@ -97,8 +97,8 @@ def run():
             st.dataframe(df_frota)
 
             st.markdown("---")
-            st.markdown("#### Selecione um equipamento do ano anterior para editar ou preencha os campos abaixo")
-            st.markdown("**Observação:** Na tabela acima, os itens que aparecem na lista suspensa correspondem à coluna **Identificação**.")
+            st.markdown("#### Selecione um equipamento do ano anterior. Para editar / atualizar ou preencher os campos abaixo, selecione o equipamento tendo como referência a coluna “Identificação”.")
+
 
             if "Identificação" in df_frota.columns:
                 lista_identificacoes = df_frota["Identificação"].dropna().unique().tolist()

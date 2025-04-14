@@ -11,3 +11,4 @@ streamlit-navigation-bar
 passlib
 bcrypt==3.2.0
 hydralit_components
+xlsxwriter
