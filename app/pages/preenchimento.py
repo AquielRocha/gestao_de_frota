@@ -170,8 +170,15 @@ def run():
     tem_chassi = st.checkbox("Este item tem Chassi?", value=True)
     tem_placa = st.checkbox("Este item tem Placa?", value=True)
 
-    st.write("**Número de Patrimônio** é obrigatório. Se não tiver, justifique.")
-    sem_patrimonio = st.checkbox("Não tenho Nº de patrimônio?")
+    st.markdown("""
+    <div style="background-color:#fff8c4; padding:10px; border-left:5px solid #e6b800; border-radius:5px;">
+    <strong>Número de Patrimônio</strong> é obrigatório. Se não tiver, justifique.
+    </div>
+    """, unsafe_allow_html=True)
+
+    sem_patrimonio = st.checkbox("Não tenho Nº de patrimônio?", help="Marque se o item não possui número de patrimônio.")
+
+
     if not sem_patrimonio:
         patrimonio_field = st.text_input("Número de Patrimônio (obrigatório)", max_chars=20, value=num_patrimonio_sel)
         justificativa_field = ""
