@@ -1,16 +1,17 @@
 import streamlit as st
 import hydralit_components as hc
 from app.services.auth import login_user, get_user_info, create_tables
-from app.pages import home, preenchimento, sobre, veiculos, register
+from app.pages import home, preenchimento, sobre, veiculos, register, usuarios, exportacao
 import sqlite3
-import base64
-from pathlib import Path
-from app.pages import exportacao
 
+# -----------------------------------------------------------------------------
 # Configurações iniciais de layout
-st.set_page_config(layout='wide', initial_sidebar_state='collapsed')
+# -----------------------------------------------------------------------------
+st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
+# -----------------------------------------------------------------------------
 # CSS global para esconder elementos do Streamlit e definir estilos básicos
+# -----------------------------------------------------------------------------
 hide_streamlit_style = """
 <style>
 /* Esconde o menu padrão, rodapé e cabeçalho */
@@ -23,8 +24,7 @@ header {visibility: hidden;}
     padding-top: 0 !important;
 }
 
-
-
+/* Estilos para a tela de login */
 .login-card {
     background: white;
     padding: 40px;
@@ -69,7 +69,6 @@ button[kind] {
     cursor: pointer;
     margin-top: 10px;
 }
-
 button[kind]:hover {
     background-color: #0056b3;
 }
@@ -77,30 +76,45 @@ button[kind]:hover {
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-# Inicializa as tabelas
+# -----------------------------------------------------------------------------
+# Criação das tabelas no banco, se não existirem (ex: usuario, frota, etc.)
+# -----------------------------------------------------------------------------
 create_tables()
 
-# Inserir dados de exemplo se necessário
+# -----------------------------------------------------------------------------
+# Inserção de dados de exemplo na tabela 'frota' (opcional)
+# -----------------------------------------------------------------------------
 def insert_dummy_frota():
     conn = sqlite3.connect("app/database/veiculos.db", check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM frota")
     count = cursor.fetchone()[0]
     if count == 0:
-        cursor.executemany("""
+        cursor.executemany(
+            """
             INSERT INTO frota (centro_custo, placa, modelo) 
             VALUES (?, ?, ?)
-        """, [
-            ("Setor A", "ABC-1234", "Modelo X"),
-            ("Setor B", "DEF-5678", "Modelo Y"),
-            ("Setor A", "GHI-9012", "Modelo Z")
-        ])
+            """,
+            [
+                ("Setor A", "ABC-1234", "Modelo X"),
+                ("Setor B", "DEF-5678", "Modelo Y"),
+                ("Setor A", "GHI-9012", "Modelo Z")
+            ]
+        )
         conn.commit()
     conn.close()
 
 insert_dummy_frota()
 
+# -----------------------------------------------------------------------------
+# Função principal (main) - Lógica de Login e Navegação
+# -----------------------------------------------------------------------------
 def main():
+    """
+    Se o usuário estiver logado, mostra o menu principal e as páginas.
+    Caso contrário, exibe a tela de login ou cadastro.
+    """
+    # Inicializa variáveis de sessão (caso não existam)
     if "user" not in st.session_state:
         st.session_state.user = None
     if "show_registration" not in st.session_state:
@@ -113,8 +127,10 @@ def main():
             {'icon': "🚗", 'label': "Visualizar Equipamentos"},
             {'icon': "📤", 'label': "Exportação"},
             {'icon': "ℹ️", 'label': "Sobre"},
+            {'icon': "👤", 'label': "Usuários"},
             {'icon': "🔓", 'label': "Logout"}
         ]
+        # Barra de navegação lateral usando hydralit_components
         selected = hc.nav_bar(
             menu_definition=menu_data,
             override_theme={
@@ -127,6 +143,7 @@ def main():
             sticky_mode='pinned',
             hide_streamlit_markers=True
         )
+        # Roteamento das páginas conforme item selecionado
         if selected == "Home":
             home.run()
         elif selected == "Formulário":
@@ -137,36 +154,46 @@ def main():
             sobre.run()
         elif selected == "Visualizar Equipamentos":
             veiculos.run()
+        elif selected == "Usuários":
+            usuarios.run()  # A página que gerencia usuários
         elif selected == "Logout":
             st.session_state.user = None
             st.rerun()
+
     else:
-        # Se estiver na tela de registro, chama a função do register
+        # Se não estiver logado, exibe ou a tela de cadastro ou a tela de login
         if st.session_state.show_registration:
-            register.run()
+            register.run()  # Tela de registro de novo usuário
         else:
             # Tela de login com HTML/CSS
-            with st.container():
-                st.markdown("<div class='login-wrapper'>", unsafe_allow_html=True)
-                st.markdown("<div class='login-title'>Bem-vindo(a)!</div>", unsafe_allow_html=True)
-                st.markdown("<div class='login-sub'>Gerencie de forma prática e eficiente todos os seus veículos e equipamentos.</div>", unsafe_allow_html=True)
-                
-                with st.form("login_form"):
-                    email = st.text_input("Email", key="login_email")
-                    senha = st.text_input("Senha", type="password", key="login_senha")
-                    if st.form_submit_button("Entrar"):
-                        if login_user(email, senha):
-                            st.session_state.user = get_user_info(email)
-                            st.rerun()
-                        else:
-                            st.error("Credenciais inválidas!")
-                
-                st.markdown("<hr class='login-hr'/>", unsafe_allow_html=True)
-                st.markdown("<p class='login-text-center'>Não possui conta?</p>", unsafe_allow_html=True)
-                if st.button("Criar Conta", key="btn_register"):
-                    st.session_state.show_registration = True
-                    st.rerun()
-                st.markdown("</div></div>", unsafe_allow_html=True)
+            st.markdown("<div class='login-wrapper'>", unsafe_allow_html=True)
+            st.markdown(
+                "<div class='login-title'>Bem-vindo(a)!</div>",
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                "<div class='login-sub'>Gerencie de forma prática e eficiente todos os seus veículos e equipamentos.</div>",
+                unsafe_allow_html=True
+            )
+            with st.form("login_form"):
+                email = st.text_input("Email", key="login_email")
+                senha = st.text_input("Senha", type="password", key="login_senha")
+                if st.form_submit_button("Entrar"):
+                    if login_user(email, senha):
+                        st.session_state.user = get_user_info(email)
+                        st.rerun()
+                    else:
+                        st.error("Credenciais inválidas!")
+            
+            st.markdown("<hr class='login-hr'/>", unsafe_allow_html=True)
+            st.markdown("<p class='login-text-center'>Não possui conta?</p>", unsafe_allow_html=True)
+            if st.button("Criar Conta", key="btn_register"):
+                st.session_state.show_registration = True
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
+# -----------------------------------------------------------------------------
+# Execução do programa
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
