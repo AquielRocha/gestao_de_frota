@@ -1,20 +1,19 @@
- streamlit
- pandas
- numpy==1.26.4
- openpyxl
- matplotlib
- streamlit-pdf-viewer
- xhtml2pdf
- plotly
- streamlit-navigation-bar
- passlib
- bcrypt==3.2.0
- hydralit_components
- xlsxwriter
- # 🔍 EDA (Análise Exploratória de Dados)
- ydata-profiling
- streamlit-pandas-profiling
--setuptools==68.2.2
-+setuptools==68.2.2
- # ✅ Compatível com pydantic v2
- pydantic-settings
+streamlit
+pandas
+numpy==1.26.4
+openpyxl
+matplotlib
+streamlit-pdf-viewer
+xhtml2pdf
+plotly
+streamlit-navigation-bar
+passlib
+bcrypt==3.2.0
+hydralit_components
+xlsxwriter
+# 🔍 EDA (Análise Exploratória de Dados)
+ydata-profiling
+streamlit-pandas-profiling
+setuptools==68.2.2
+# ✅ Compatível com pydantic v2
+pydantic-settings
