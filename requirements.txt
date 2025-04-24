@@ -12,9 +12,8 @@
  hydralit_components
  xlsxwriter
  # 🔍 EDA (Análise Exploratória de Dados)
- ydata-profiling
- streamlit-pandas-profiling
-+# Necessário para o pkg_resources do ydata-profiling
-+setuptools>=68.0.0
+ydata-profiling
+streamlit-pandas-profiling
++setuptools==68.2.2
  # ✅ Compatível com pydantic v2
  pydantic-settings
