@@ -3,7 +3,6 @@ import pandas as pd
 import sqlite3
 import plotly.express as px
 import re
-from st_aggrid import AgGrid, GridOptionsBuilder
 from app.services.auth import check_user_logged_in
 
 def carregar_dados_frota(centro_custo):
@@ -81,8 +80,7 @@ def run():
         st.subheader("🧾 Visualização Interativa da Tabela")
         with st.expander("🔍 Clique para visualizar os dados completos"):
 
-            # Seleciona e renomeia colunas para nomes legíveis
-            df_tabela = df[[
+            df_tabela = df[[ 
                 "identificacao", "modelo", "ano_fabricacao", "tipo_combustivel",
                 "controle_desempenho", "uso_km", "status"
             ]].rename(columns={
@@ -95,15 +93,10 @@ def run():
                 "status": "Status"
             })
 
-            gb = GridOptionsBuilder.from_dataframe(df_tabela)
-            gb.configure_pagination(paginationAutoPageSize=True)
-            gb.configure_side_bar()
-            gb.configure_default_column(editable=False, groupable=True)
-            gridOptions = gb.build()
-
-            AgGrid(
+            st.dataframe(
                 df_tabela,
-                gridOptions=gridOptions,
+                use_container_width=True,
+                hide_index=True,
                 height=400,
-                theme="streamlit"
+                column_config={col: st.column_config.Column(label=col) for col in df_tabela.columns}
             )

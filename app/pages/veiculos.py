@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from st_aggrid import AgGrid, GridOptionsBuilder
 from app.services.auth import check_user_logged_in
 from app.services.frota_2025_service import get_veiculos_by_setor_ano
 
@@ -74,13 +73,12 @@ def run():
         if placa:
             df = df[df["Placa"].str.contains(placa, case=False, na=False)]
 
-    # Tabela interativa
+    # Tabela interativa moderna com ordenação e rolagem horizontal
     st.subheader("📑 Equipamentos Encontrados")
-    gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_pagination(paginationAutoPageSize=True)
-    gb.configure_side_bar()
-    gb.configure_default_column(editable=False, groupable=True)
-    grid_options = gb.build()
-
-    AgGrid(df, gridOptions=grid_options, theme="streamlit", height=500)
-
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={col: st.column_config.Column(label=col) for col in df.columns},
+        height=500
+    )
