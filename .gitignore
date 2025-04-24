@@ -54,4 +54,3 @@ Thumbs.db
 !.vscode/extensions.json
 
 # Exclude the file
-app/database/veiculos.db
