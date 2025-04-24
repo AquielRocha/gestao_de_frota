@@ -1,22 +1,15 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from st_aggrid import AgGrid, GridOptionsBuilder
 from app.services.auth import check_user_logged_in
 
 # -------------------------------------------------------------------
 # Funções de acesso ao banco (SQLite)
 # -------------------------------------------------------------------
 def get_connection():
-    """Retorna uma conexão com o banco de dados SQLite."""
-    conn = sqlite3.connect("app/database/veiculos.db")
-    return conn
+    return sqlite3.connect("app/database/veiculos.db")
 
 def get_all_users():
-    """
-    Retorna todos os usuários da tabela `usuario`.
-    Estrutura esperada (id, nome, email, senha_hash, setor_id).
-    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id, nome, email, senha_hash, setor_id FROM usuario;")
@@ -26,38 +19,29 @@ def get_all_users():
     return rows
 
 def create_user(nome, email, senha_hash, setor_id):
-    """Cria um novo usuário."""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        """
+    cursor.execute("""
         INSERT INTO usuario (nome, email, senha_hash, setor_id)
         VALUES (?, ?, ?, ?);
-        """,
-        (nome, email, senha_hash, setor_id)
-    )
+    """, (nome, email, senha_hash, setor_id))
     conn.commit()
     cursor.close()
     conn.close()
 
 def update_user(user_id, nome, email, senha_hash, setor_id):
-    """Atualiza os dados de um usuário específico."""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        """
+    cursor.execute("""
         UPDATE usuario
         SET nome = ?, email = ?, senha_hash = ?, setor_id = ?
         WHERE id = ?;
-        """,
-        (nome, email, senha_hash, setor_id, user_id)
-    )
+    """, (nome, email, senha_hash, setor_id, user_id))
     conn.commit()
     cursor.close()
     conn.close()
 
 def delete_user(user_id):
-    """Exclui um usuário específico."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM usuario WHERE id = ?;", (user_id,))
@@ -69,102 +53,68 @@ def delete_user(user_id):
 # Função principal da página
 # -------------------------------------------------------------------
 def run():
-    """
-    Executa a tela de gestão de usuários.
-    Deve ser chamada em algum ponto do seu app principal.
-    """
-    # Garante que o usuário está logado
     check_user_logged_in()
-    usuario_atual = st.session_state.user  # Dicionário com info do usuário logado
-
-    # Se você quiser restringir somente a alguns usuários,
-    # você pode colocar checagens aqui. Por enquanto, está livre.
-    # Exemplo (comentado):
-    # if usuario_atual.get("perfil") != "admin":
-    #     st.error("Acesso negado. Somente administradores podem acessar esta página.")
-    #     return
+    usuario_atual = st.session_state.user
 
     st.title("Gestão de Usuários - Administração")
 
-    # Carrega todos os usuários da tabela `usuario`
-    todos_usuarios = get_all_users()  # lista de tuplas: (id, nome, email, senha_hash, setor_id)
-
-    # ~~~~~~~~~~~~~~~~ Interface para inserir um novo usuário ~~~~~~~~~~~~~~~~~
+    # Adição de novo usuário
     st.subheader("Adicionar Novo Usuário")
     with st.expander("Clique para adicionar"):
-        novo_nome = st.text_input("Nome", key="novo_nome")
-        novo_email = st.text_input("Email", key="novo_email")
-        novo_senha = st.text_input("Senha (hash)", key="novo_senha")
-        novo_setor = st.text_input("Setor ID (opcional)", key="novo_setor")
-        
+        novo_nome = st.text_input("Nome")
+        novo_email = st.text_input("Email")
+        novo_senha = st.text_input("Senha (hash)")
+        novo_setor = st.text_input("Setor ID (opcional)")
+
         if st.button("Criar Usuário"):
             try:
                 create_user(novo_nome, novo_email, novo_senha, novo_setor)
                 st.success("Usuário criado com sucesso!")
-                st.rerun()  # Recarrega a página para mostrar o usuário criado
+                st.rerun()
             except Exception as e:
                 st.error(f"Erro ao criar usuário: {e}")
 
-    # ~~~~~~~~~~~~~~~~ Filtro de pesquisa simples ~~~~~~~~~~~~~~~~~
-    st.subheader("Lista de Usuários")
-    search_text = st.text_input("Buscar por nome ou email", key="busca")
-
-    if search_text:
-        search_lower = search_text.lower()
-        usuarios_filtrados = [
-            u for u in todos_usuarios
-            if search_lower in u[1].lower() or search_lower in u[2].lower()
-        ]
-    else:
-        usuarios_filtrados = todos_usuarios
-
-    # ~~~~~~~~~~~~~~~~ Exibição em tabela editável (st_aggrid) ~~~~~~~~~~~~~~~~~
-    # Converte para DataFrame para ficar mais fácil manipular no AgGrid
+    # Carrega todos os usuários
+    todos_usuarios = get_all_users()
     df_usuarios = pd.DataFrame(
-        usuarios_filtrados,
+        todos_usuarios,
         columns=["ID", "Nome", "Email", "SenhaHash", "SetorID"]
     )
 
-    st.markdown("#### Tabela de Usuários (editável)")
-    gb = GridOptionsBuilder.from_dataframe(df_usuarios)
-    gb.configure_pagination(paginationAutoPageSize=True)
-    gb.configure_side_bar()
-    # Permite edição de colunas, exceto o ID
-    gb.configure_column("ID", editable=False)
-    gb.configure_column("Nome", editable=True)
-    gb.configure_column("Email", editable=True)
-    gb.configure_column("SenhaHash", header_name="Senha (hash)", editable=True)
-    gb.configure_column("SetorID", header_name="Setor (ID)", editable=True)
+    # Filtro de busca
+    st.subheader("Lista de Usuários")
+    search_text = st.text_input("Buscar por nome ou email")
+    if search_text:
+        search_lower = search_text.lower()
+        df_usuarios = df_usuarios[df_usuarios.apply(
+            lambda row: search_lower in str(row["Nome"]).lower() or search_lower in str(row["Email"]).lower(),
+            axis=1
+        )]
 
-    gridOptions = gb.build()
-    grid_return = AgGrid(
-        df_usuarios,
-        gridOptions=gridOptions,
-        update_mode='MODEL_CHANGED',
-        theme="streamlit"
-    )
+    # Exibição da tabela com edição por linha (experimental)
+    st.markdown("#### Tabela de Usuários")
+    st.dataframe(df_usuarios, use_container_width=True, hide_index=True)
 
-    # Se o usuário editar alguma linha, vamos capturar as alterações
-    df_editado = grid_return["data"]  # DataFrame resultante
+    # Formulário para editar usuário selecionado
+    st.subheader("Editar Usuário")
+    with st.expander("Clique para editar um usuário existente"):
+        user_id_editar = st.selectbox("Selecione o ID do usuário", options=df_usuarios["ID"])
+        usuario = df_usuarios[df_usuarios["ID"] == user_id_editar].iloc[0]
 
-    # Botão para salvar alterações
-    if st.button("Salvar Alterações"):
-        try:
-            for idx, row in df_editado.iterrows():
-                user_id = row["ID"]
-                update_user(
-                    user_id=user_id,
-                    nome=row["Nome"],
-                    email=row["Email"],
-                    senha_hash=row["SenhaHash"],
-                    setor_id=row["SetorID"]
-                )
-            st.success("Alterações salvas com sucesso!")
-            st.rerun()
-        except Exception as e:
-            st.error(f"Erro ao salvar alterações: {e}")
+        nome_edit = st.text_input("Nome", value=usuario["Nome"])
+        email_edit = st.text_input("Email", value=usuario["Email"])
+        senha_edit = st.text_input("Senha (hash)", value=usuario["SenhaHash"])
+        setor_edit = st.text_input("Setor ID", value=usuario["SetorID"])
 
-    # ~~~~~~~~~~~~~~~~ Excluir usuário ~~~~~~~~~~~~~~~~~
+        if st.button("Salvar Alterações"):
+            try:
+                update_user(user_id_editar, nome_edit, email_edit, senha_edit, setor_edit)
+                st.success("Alterações salvas com sucesso!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao salvar alterações: {e}")
+
+    # Excluir usuário
     st.subheader("Excluir Usuário")
     user_id_excluir = st.text_input("Informe o ID do usuário que deseja excluir")
     if st.button("Excluir"):
