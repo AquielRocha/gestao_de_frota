@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
+from ydata_profiling import ProfileReport
 from app.services.auth import check_user_logged_in
 from app.services.frota_2025_service import get_veiculos_by_setor_ano
-
+from streamlit_pandas_profiling import st_profile_report
+from pandas_profiling import ProfileReport
 def run():
     check_user_logged_in()
     setor = st.session_state.user["setor_id"]
@@ -82,3 +84,8 @@ def run():
         column_config={col: st.column_config.Column(label=col) for col in df.columns},
         height=500
     )
+     # Perfil completo dos dados
+    with st.expander("📊 Análise Exploratória com Pandas Profiling"):
+        if st.checkbox("Gerar relatório exploratório dos dados filtrados"):
+            profile = ProfileReport(df, title="Relatório - Equipamentos 2025", explorative=True)
+            st_profile_report(profile)

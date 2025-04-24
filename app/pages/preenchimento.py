@@ -7,6 +7,8 @@ import sqlite3
 # Import dos seus serviços (exemplo)
 from app.services.auth import check_user_logged_in
 from app.services.frota_service import get_veiculos_by_setor
+from app.pages import home, preenchimento, sobre, veiculos, register, usuarios, exportacao
+
 
 def run():
     # Customização do botão "Salvar todos os itens" usando CSS em HTML
@@ -25,42 +27,132 @@ def run():
         """,
         unsafe_allow_html=True
     )
+    # ⬆️ lá no começo do run(), depois do CSS do botão, cole mais um bloco:
+    st.markdown(
+        """
+        <style>
+        /* ---------- Botão “Salvar todos os itens” ---------- */
+        div.stButton > button#save_button {
+            background-color: #F3F3F3 !important;
+            color: #fff !important;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-weight: bold;
+            opacity: 1 !important;
+        }
+
+        /* ---------- Tabela Frota Compacta ---------- */
+        :root {
+            --bg: #f8fafc;
+            --bg-card: #fff;
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --text: #0f172a;
+            --border: #e2e8f0;
+            --accent: #f1f5f9;
+        }
+        .frota-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 7px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 2px rgb(15 23 42 / .08);
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        /* Scrollbar bonito (Chrome, Edge, Safari) */
+        .frota-card::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .frota-card::-webkit-scrollbar-track {
+            background: var(--accent);
+        }
+        .frota-card::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 4px;
+        }
+
+        .frota-table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            font-size: 15px;
+            color: var(--text);
+        }
+        .frota-table th, .frota-table td {
+            padding: 8px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        .frota-table thead {
+            background: var(--primary);
+            color: #fff;
+        }
+        /* Cabeçalho fixo */
+        .frota-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .frota-table tbody tr:nth-child(odd) {
+            background: var(--accent);
+        }
+        .frota-table tbody tr:hover {
+            background: var(--primary-light);
+            color: #fff;
+        }
+
+        @media (max-width: 640px) {
+            .frota-table th, .frota-table td {
+                padding: 7px;
+                font-size: 12px;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Adiciona barra de busca com ícone de lupa
+    st.markdown(
+        """
+        <div style="display: flex; align-items: center; margin-bottom: 16px;">
+            <input type="text" id="searchInput" placeholder="Buscar itens..."
+                   style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px;">
+            <button style="margin-left: 8px; padding: 8px 12px; background-color: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                🔍
+            </button>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     # 1) Verifica se o usuário está logado
-    check_user_logged_in() 
+    check_user_logged_in()
     usuario = st.session_state.user
-    centro_custo = usuario.get("setor_id")  # Pegando do campo correto
+    centro_custo = usuario.get("setor_id")
 
     centro_custo_display = re.sub(
-        r"NOME NÃO ENCONTRADO ANTIGO NOME \((.+)\)", 
-        r"\1", 
+        r"NOME NÃO ENCONTRADO ANTIGO NOME \((.+)\)",
+        r"\1",
         centro_custo
     )
 
     # 2) Recupera o setor do usuário logado
     setor = st.session_state.user["setor_id"]
     st.markdown(f"## Equipamentos da Unidade {centro_custo_display}")
-    
-    # Inicializa variáveis padrão para uso no formulário
-    placa_sel = ""
-    renavam_sel = ""
-    chassi_sel = ""
-    num_patrimonio_sel = ""
-    fabricante_sel = ""
-    modelo_sel = ""
-    ano_fab_sel = ""
-    ano_mod_sel = ""
-    combustivel_sel = ""
-    status_sel = ""
-    cor_sel = ""
-    observacoes_sel = ""
-    proprietario_sel = ""
-    
+
     # 3) Busca os veículos da tabela 'frota' para o setor logado
     rows, columns = get_veiculos_by_setor(setor)
-    
+
     if rows:
         df_frota = pd.DataFrame(rows, columns=columns)
+        # Esconde colunas id e quantidade, se existirem
+        df_frota.drop(columns=["id", "quantidade"], inplace=True, errors="ignore")
+
         df_frota.rename(columns={
             "identificacao": "Identificação",
             "codigo_renavam": "Código Renavam",
@@ -94,11 +186,19 @@ def run():
             st.info("Todos os itens desta unidade que estavam desatualizados foram atualizados!.")
             st.write("Ainda assim, você pode adicionar **novos itens** que não fazem parte da tabela frota original.")
         else:
-            st.dataframe(df_frota)
+            # Converte o DataFrame para HTML sem índice
+            html_tabela = df_frota.to_html(
+                classes="frota-table",
+                index=False,
+                border=0,
+                escape=False
+            )
+            st.markdown(f'<div class="frota-card">{html_tabela}</div>', unsafe_allow_html=True)
 
             st.markdown("---")
-            st.markdown("#### Selecione um equipamento do ano anterior. Para editar / atualizar ou preencher os campos abaixo, selecione o equipamento tendo como referência a coluna “Identificação”.")
-
+            st.markdown(
+                "#### Selecione um equipamento do ano anterior. Para editar / atualizar ou preencher os campos abaixo, selecione o equipamento tendo como referência a coluna “Identificação”."
+            )
 
             if "Identificação" in df_frota.columns:
                 lista_identificacoes = df_frota["Identificação"].dropna().unique().tolist()
@@ -112,33 +212,32 @@ def run():
 
             if escolha_identificacao:
                 row = df_frota[df_frota["Identificação"] == escolha_identificacao].iloc[0]
-                placa_sel          = str(row.get("Identificação", "") or "")
-                renavam_sel        = str(row.get("Código Renavam", "") or "")
-                chassi_sel         = str(row.get("Número do Chassi", "") or "")
+                placa_sel = str(row.get("Identificação", "") or "")
+                renavam_sel = str(row.get("Código Renavam", "") or "")
+                chassi_sel = str(row.get("Número do Chassi", "") or "")
                 num_patrimonio_sel = str(row.get("Número de Patrimônio", "") or "")
-                fabricante_sel     = str(row.get("Fabricante", "") or "")
-                modelo_sel         = str(row.get("Modelo", "") or "")
-                ano_fab_sel        = str(row.get("Ano de Fabricação", "") or "")
-                ano_mod_sel        = str(row.get("Ano do Modelo", "") or "")
-                combustivel_sel    = str(row.get("Combustível", "") or "")
-                status_sel         = str(row.get("Status", "") or "")
-                cor_sel            = str(row.get("Cor", "") or "")
-                observacoes_sel    = str(row.get("Observações", "") or "")
-                proprietario_sel   = str(row.get("Proprietário", "") or "")
+                fabricante_sel = str(row.get("Fabricante", "") or "")
+                modelo_sel = str(row.get("Modelo", "") or "")
+                ano_fab_sel = str(row.get("Ano de Fabricação", "") or "")
+                ano_mod_sel = str(row.get("Ano do Modelo", "") or "")
+                combustivel_sel = str(row.get("Combustível", "") or "")
+                status_sel = str(row.get("Status", "") or "")
+                cor_sel = str(row.get("Cor", "") or "")
+                observacoes_sel = str(row.get("Observações", "") or "")
+                proprietario_sel = str(row.get("Proprietário", "") or "")
             else:
-                placa_sel = renavam_sel = chassi_sel = num_patrimonio_sel = fabricante_sel = ""
-                modelo_sel = ano_fab_sel = ano_mod_sel = combustivel_sel = status_sel = ""
-                cor_sel = observacoes_sel = proprietario_sel = ""
+                placa_sel = renavam_sel = chassi_sel = num_patrimonio_sel = ""
+                fabricante_sel = modelo_sel = ano_fab_sel = ano_mod_sel = ""
+                combustivel_sel = status_sel = cor_sel = observacoes_sel = proprietario_sel = ""
     else:
         st.info("Nenhum veículo encontrado para este setor.")
-        placa_sel = renavam_sel = chassi_sel = num_patrimonio_sel = fabricante_sel = ""
-        modelo_sel = ano_fab_sel = ano_mod_sel = combustivel_sel = status_sel = ""
-        cor_sel = observacoes_sel = proprietario_sel = ""
+        placa_sel = renavam_sel = chassi_sel = num_patrimonio_sel = ""
+        fabricante_sel = modelo_sel = ano_fab_sel = ano_mod_sel = ""
+        combustivel_sel = status_sel = cor_sel = observacoes_sel = proprietario_sel = ""
 
     # ------------------------------------------------------------------
     # Exibe o formulário de adição (independente de haver itens do DF)
     # ------------------------------------------------------------------
-
     try:
         conn = sqlite3.connect("app/database/veiculos.db")
         df_dim = pd.read_sql_query("SELECT * FROM dimensao_frota_2024", conn)
@@ -178,7 +277,6 @@ def run():
 
     sem_patrimonio = st.checkbox("Não tenho Nº de patrimônio?", help="Marque se o item não possui número de patrimônio.")
 
-
     if not sem_patrimonio:
         patrimonio_field = st.text_input("Número de Patrimônio (obrigatório)", max_chars=20, value=num_patrimonio_sel)
         justificativa_field = ""
@@ -200,7 +298,7 @@ def run():
                 proprietario_final = proprietario_opt.strip() if proprietario_opt else (proprietario_sel or None)
 
             if tem_placa:
-                placa = st.text_input("Placa", max_chars=8, value=placa_sel)
+                placa = st.text_input("Placa/Identificação", max_chars=8, value=placa_sel)
             else:
                 placa = ""
             if tem_renavam:
@@ -212,7 +310,7 @@ def run():
                 chassi = st.text_input("Número do Chassi", max_chars=17, value=chassi_sel)
             else:
                 chassi = ""
-            
+
             marca = st.text_input("Marca/Fabricante", value=fabricante_sel)
             modelo = st.text_input("Modelo", max_chars=30, value=modelo_sel)
             ano_fab = st.text_input("Ano de Fabricação", max_chars=4, value=ano_fab_sel)
@@ -237,19 +335,9 @@ def run():
 
         has_error = False
 
-        if placa_up:
-            if not re.match(r"^[A-Z0-9]{7,8}$", placa_up):
-                st.error("Placa inválida! Exemplo: ABC1234.")
-                has_error = True
-
         if tem_renavam and renavam_up:
             if not re.match(r"^[0-9]{9,11}$", renavam_up):
                 st.error("Renavam inválido! Deve ter 9 ou 11 dígitos.")
-                has_error = True
-
-        if tem_chassi and chassi_up:
-            if not re.match(r"^[A-Z0-9]{17}$", chassi_up):
-                st.error("Chassi inválido! Ex: 9BWZZZ377VT004251 (17).")
                 has_error = True
 
         if ano_fab:
@@ -309,10 +397,6 @@ def run():
             is_justificativa = patrimonio_val_atual.startswith("JUST:")
 
             with st.form("form_editar_frota", clear_on_submit=False):
-                tem_renavam_e = (item_edit["renavam"] is not None)
-                tem_chassi_e = (item_edit["numero_chassi"] is not None)
-
-                st.write("**Número de Patrimônio** é obrigatório. Se não tiver, justifique.")
                 sem_patrimonio_e = st.checkbox("Não tenho Nº de patrimônio? (edição)", value=is_justificativa)
 
                 if not sem_patrimonio_e:
@@ -342,23 +426,18 @@ def run():
                         )
 
                     placa_e = st.text_input("Placa", max_chars=8, value=item_edit["placa"] or "")
-                    tem_renavam_e = st.checkbox("Este item tem Renavam? (edição)", value=tem_renavam_e)
+                    tem_renavam_e = st.checkbox("Este item tem Renavam? (edição)", value=(item_edit["renavam"] is not None))
                     if tem_renavam_e:
                         renavam_e = st.text_input("Renavam", max_chars=11, value=item_edit["renavam"] or "")
                     else:
                         renavam_e = ""
                 with col2e:
-                    tem_chassi_e = st.checkbox("Este item tem Chassi? (edição)", value=tem_chassi_e)
+                    tem_chassi_e = st.checkbox("Este item tem Chassi? (edição)", value=(item_edit["numero_chassi"] is not None))
                     if tem_chassi_e:
                         chassi_e = st.text_input("Número do Chassi", max_chars=17, value=item_edit["numero_chassi"] or "")
                     else:
                         chassi_e = ""
                 with col3e:
-                    tem_placa_e = st.checkbox("Este item tem Placa? (edição)", value=False)
-                    if tem_placa_e:
-                        placa_e = st.text_input("Número da Placa", max_chars=17, value=item_edit["placa"] or "")
-                    else:
-                        placa_e = ""
                     marca_e = st.text_input("Marca/Fabricante", value=item_edit["marca"] or "")
                     modelo_e = st.text_input("Modelo", max_chars=30, value=item_edit["modelo"] or "")
                     ano_fab_e = st.text_input("Ano de Fabricação", max_chars=4, value=item_edit["ano_fabricacao"] or "")
@@ -379,32 +458,27 @@ def run():
                 has_error_edit = False
 
                 placa_up = placa_e.strip().upper()
-                if placa_up:
-                    if not re.match(r"^[A-Z0-9]{7,8}$", placa_up):
-                        st.error("Placa inválida! Exemplo: ABC1234.")
-                        has_error_edit = True
+                if placa_up and not re.match(r"^[A-Z0-9]{7,8}$", placa_up):
+                    st.error("Placa inválida! Exemplo: ABC1234.")
+                    has_error_edit = True
 
                 renavam_up = renavam_e.strip()
-                if tem_renavam_e and renavam_up:
-                    if not re.match(r"^[0-9]{11}$", renavam_up):
-                        st.error("Renavam inválido! Deve ter 11 dígitos.")
-                        has_error_edit = True
+                if tem_renavam_e and renavam_up and not re.match(r"^[0-9]{11}$", renavam_up):
+                    st.error("Renavam inválido! Deve ter 11 dígitos.")
+                    has_error_edit = True
 
                 chassi_up = chassi_e.strip().upper()
-                if tem_chassi_e and chassi_up:
-                    if not re.match(r"^[A-Z0-9]{17}$", chassi_up):
-                        st.error("Chassi inválido! Deve ter 17 caracteres alfanuméricos.")
-                        has_error_edit = True
+                if tem_chassi_e and chassi_up and not re.match(r"^[A-Z0-9]{17}$", chassi_up):
+                    st.error("Chassi inválido! Deve ter 17 caracteres alfanuméricos.")
+                    has_error_edit = True
 
-                if ano_fab_e:
-                    if not re.match(r"^\d{4}$", ano_fab_e):
-                        st.error("Ano de Fabricação inválido! Ex: 2020.")
-                        has_error_edit = True
+                if ano_fab_e and not re.match(r"^\d{4}$", ano_fab_e):
+                    st.error("Ano de Fabricação inválido! Ex: 2020.")
+                    has_error_edit = True
 
-                if ano_mod_e:
-                    if not re.match(r"^\d{4}$", ano_mod_e):
-                        st.error("Ano do Modelo inválido! Ex: 2021.")
-                        has_error_edit = True
+                if ano_mod_e and not re.match(r"^\d{4}$", ano_mod_e):
+                    st.error("Ano do Modelo inválido! Ex: 2021.")
+                    has_error_edit = True
 
                 patrimonio_final_e = None
                 if not sem_patrimonio_e:
@@ -443,7 +517,7 @@ def run():
 
     st.markdown("---")
     st.markdown("#### Itens Adicionados (salve antes de sair)")
-    if len(st.session_state["frota_temp"]) == 0:
+    if not st.session_state["frota_temp"]:
         st.info("Nenhum item adicionado ainda.")
     else:
         for i, item in enumerate(st.session_state["frota_temp"], 1):
@@ -462,7 +536,7 @@ def run():
                 st.write(f"**Status:** {item.get('status') or ''}")
                 st.write(f"**Cor:** {item.get('cor') or ''}")
                 st.write(f"**Observações:** {item.get('observacao') or ''}")
-                
+
                 col_edit, col_del = st.columns(2)
                 with col_edit:
                     if st.button(f"Editar {i}", key=f"btn_edit_{i}"):
@@ -474,8 +548,8 @@ def run():
                         st.rerun()
                 st.write("---")
 
-    # Destaque para o botão de salvar todos os itens com a personalização em HTML
-    if len(st.session_state["frota_temp"]) > 0:
+    # Botão "Salvar todos os itens" com redirecionamento
+    if st.session_state["frota_temp"]:
         st.markdown("---")
         if st.button("Salvar todos os itens", key="save_button", help="Clique para salvar todos os itens adicionados", use_container_width=True):
             try:
@@ -503,8 +577,8 @@ def run():
                         observacao
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
-                usuario_id = st.session_state.user["id"] if "user" in st.session_state else 1
-                setor_id = st.session_state.user["setor_id"] if "user" in st.session_state else 1
+                usuario_id = st.session_state.user["id"]
+                setor_id = st.session_state.user["setor_id"]
 
                 for item in st.session_state["frota_temp"]:
                     data_preenchimento = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -536,9 +610,17 @@ def run():
                 st.session_state["frota_temp"].clear()
                 st.success("Todos os itens foram salvos com sucesso!")
 
+                # Redireciona para a página de exportação
+                st.experimental_set_query_params(page="veiculos")
+                st.rerun()
+
             except Exception as e:
                 st.error(f"Erro ao inserir dados: {e}")
                 if conn:
                     conn.rollback()
-                    conn.close()
                 st.session_state["frota_temp"].clear()
+                st.warning("Todos os itens foram removidos da lista temporária.")
+            finally:
+                if conn:
+                    conn.close()
+        st.markdown("---")

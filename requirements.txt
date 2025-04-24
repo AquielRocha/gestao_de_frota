@@ -11,3 +11,9 @@ passlib
 bcrypt==3.2.0
 hydralit_components
 xlsxwriter
+# 🔍 EDA (Análise Exploratória de Dados)
+ydata-profiling
+streamlit-pandas-profiling
+# ✅ Compatível com pydantic v2
+pydantic-settings
+
