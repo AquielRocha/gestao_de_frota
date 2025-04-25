@@ -8,7 +8,7 @@ def run():
 
     with st.form("register_form"):
         nome  = st.text_input("Nome completo")
-        cpf   = st.text_input("CPF (só números)")
+        cpf   = st.text_input("CPF (só números)", max_chars=11)
         email = st.text_input("Email")
         pwd   = st.text_input("Senha", type="password")
 

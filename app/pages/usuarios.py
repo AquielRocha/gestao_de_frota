@@ -128,7 +128,7 @@ def run():
                 with col1:
                     n_user = st.text_input("Username*")
                     n_nome = st.text_input("Nome*")
-                    n_cpf  = st.text_input("CPF")
+                    n_cpf  = st.text_input("CPF", max_chars=11)
                 with col2:
                     n_email = st.text_input("Email*")
                     s1 = st.text_input("Senha*", type="password")
