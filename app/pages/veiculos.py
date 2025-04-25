@@ -3,104 +3,95 @@ import pandas as pd
 import sqlite3
 from app.services.auth import check_user_logged_in
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Conexão utilitária
-# ─────────────────────────────────────────────────────────────────────────────
-def get_connection():
-    return sqlite3.connect("app/database/frota.db")
+DB = "app/database/frota.db"
 
-# Puxa todos os equipamentos 2025 do setor
-def get_equipamentos_2025(setor_codigo: int):
+# ───────────────────────── helpers ─────────────────────────
+def get_connection():
+    return sqlite3.connect(DB)
+
+def equipamentos_2025(setor:int) -> pd.DataFrame:
     sql = """
-    SELECT *
-      FROM equipamentos
-     WHERE centro_custo_uc = ?
-       AND ano = 2025
+        SELECT *
+          FROM equipamentos
+         WHERE ano = 2025
+           AND centro_custo_uc = ?
     """
     with get_connection() as con:
-        df = pd.read_sql(sql, con, params=(setor_codigo,))
-    return df
+        return pd.read_sql(sql, con, params=(setor,))
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Página
-# ─────────────────────────────────────────────────────────────────────────────
+# ───────────────────────── página ─────────────────────────
 def run():
     check_user_logged_in()
-    setor_codigo = st.session_state.user["setor_codigo"]
+    setor = st.session_state.user["setor_codigo"]
 
-    st.title("📋 Equipamentos (Ano 2025)")
+    st.title("📋 Equipamentos 2025 – Lista Atualizada")
 
-    df = get_equipamentos_2025(setor_codigo)
+    df = equipamentos_2025(setor)
 
     if df.empty:
-        st.info("Nenhum equipamento 2025 encontrado para este setor.")
+        st.info("Nenhum equipamento de 2025 encontrado para este Centro de Custo.")
         return
 
-    # Remove colunas internas
+    # colunas internas fora
     df = df.drop(columns=["codigo", "centro_custo_uc"], errors="ignore")
 
-    # Limpa vírgulas em colunas texto
-    for col in df.select_dtypes(include=["object"]).columns:
+    # tira vírgulas de textos
+    for col in df.select_dtypes(include="object"):
         df[col] = df[col].str.replace(",", "", regex=False)
 
-    # Renomeia para títulos mais legíveis
-    rename_map = {
-        "identificacao":      "Identificação",
-        "fabricante":         "Marca",
-        "modelo":             "Modelo",
-        "ano_fabricacao":     "Ano de Fabricação",
-        "ano_modelo":         "Ano do Modelo",
-        "cor":                "Cor",
-        "tipo_combustivel":   "Combustível",
-        "tipo_bem":           "Tipo do Bem",
-        "subtipo_bem":        "Subtipo",
-        "status":             "Status",
-        "observacoes":        "Observação",
-        "motorizacao":        "Motorização",
-        "tipo_propriedade":   "Tipo de Propriedade",
-        "uso_km":             "Uso (km/horas)",
-        "data_aquisicao":     "Data Aquisição"
-    }
-    df = df.rename(columns=rename_map)
+    # renomeia p/ português legível
+    df = df.rename(columns={
+        "identificacao":    "Identificação",
+        "fabricante":       "Marca",
+        "modelo":           "Modelo",
+        "ano_fabricacao":   "Ano de Fabricação",
+        "ano_modelo":       "Ano do Modelo",
+        "cor":              "Cor",
+        "tipo_combustivel": "Combustível",
+        "tipo_bem":         "Tipo do Bem",
+        "subtipo_bem":      "Subtipo",
+        "status":           "Status",
+        "observacoes":      "Observações",
+        "motorizacao":      "Motorização",
+        "tipo_propriedade": "Tipo de Propriedade",
+        "uso_km":           "Uso (km/horas)",
+        "data_aquisicao":   "Data de Aquisição"
+    })
 
-    # ───── filtros ─────
-    with st.expander("🔎 Filtrar Equipamentos"):
+    # ───────── filtros ─────────
+    with st.expander("🔎 Filtros"):
         col1, col2, col3 = st.columns(3)
-        tipo = col1.selectbox("Tipo do Bem",
-                              ["Todos"] + sorted(df["Tipo do Bem"].dropna().unique()))
-        marca = col2.selectbox("Marca",
-                               ["Todos"] + sorted(df["Marca"].dropna().unique()))
-        modelo = col3.selectbox("Modelo",
-                                ["Todos"] + sorted(df["Modelo"].dropna().unique()))
+        tipo   = col1.selectbox("Tipo do Bem",   ["Todos"]+sorted(df["Tipo do Bem"].dropna().unique()))
+        marca  = col2.selectbox("Marca",         ["Todos"]+sorted(df["Marca"].dropna().unique()))
+        modelo = col3.selectbox("Modelo",        ["Todos"]+sorted(df["Modelo"].dropna().unique()))
 
         col4, col5 = st.columns(2)
-        status = col4.selectbox("Status",
-                                ["Todos"] + sorted(df["Status"].dropna().unique()))
-        ano_fab = col5.selectbox("Ano de Fabricação",
-                                 ["Todos"] + sorted(df["Ano de Fabricação"].dropna().unique()))
+        status  = col4.selectbox("Status",       ["Todos"]+sorted(df["Status"].dropna().unique()))
+        ano_fab = col5.selectbox("Ano Fabricação", ["Todos"]+sorted(df["Ano de Fabricação"].dropna().unique()))
 
-        # aplica filtros
-        if tipo != "Todos":
-            df = df[df["Tipo do Bem"] == tipo]
-        if marca != "Todos":
-            df = df[df["Marca"] == marca]
-        if modelo != "Todos":
-            df = df[df["Modelo"] == modelo]
-        if status != "Todos":
-            df = df[df["Status"] == status]
-        if ano_fab != "Todos":
-            df = df[df["Ano de Fabricação"] == ano_fab]
+        # aplica
+        if tipo   != "Todos": df = df[df["Tipo do Bem"]        == tipo]
+        if marca  != "Todos": df = df[df["Marca"]              == marca]
+        if modelo != "Todos": df = df[df["Modelo"]             == modelo]
+        if status != "Todos": df = df[df["Status"]             == status]
+        if ano_fab!= "Todos": df = df[df["Ano de Fabricação"]  == ano_fab]
 
-    # ───── tabela ─────
-    st.subheader("📑 Equipamentos Homologados e Atualizados!")
+    # ───────── tabela ─────────
+    st.markdown("""
+        <style>
+        .stDataFrame tbody tr:nth-child(odd){background:#f9fafb;}
+        .stDataFrame thead tr th{background:#2d3748;color:#fff;}
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.subheader("📑 Equipamentos Homologados")
     st.dataframe(
         df,
         use_container_width=True,
         hide_index=True,
-        height=500,
-        column_config={c: st.column_config.Column(label=c) for c in df.columns}
+        height=500
     )
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────
 if __name__ == "__main__":
     run()

@@ -1,110 +1,69 @@
 import streamlit as st
-import sqlite3
-import pandas as pd
-import io
+import sqlite3, pandas as pd, io
 from app.services.auth import check_user_logged_in
 
-def export_data_to_excel(db_path="app/database/veiculos.db"):
-    """
-    Lê as tabelas 'frota' e 'frota_2025' do banco SQLite e gera um arquivo Excel
-    com duas abas (frota e frota_2025) de forma estilizada.
-    Retorna os bytes do arquivo em memória.
-    """
+DB_PATH = "app/database/frota.db"
 
-    # Conecta ao banco e lê as tabelas
-    conn = sqlite3.connect(db_path)
-    df_frota = pd.read_sql_query("SELECT * FROM frota", conn)
-    df_frota_2025 = pd.read_sql_query("SELECT * FROM frota_2025", conn)
-    conn.close()
+# ───────── helpers ─────────
+def ler_equipamentos(ano:int, where:str="", params:tuple=()) -> pd.DataFrame:
+    with sqlite3.connect(DB_PATH) as con:
+        return pd.read_sql(f"SELECT * FROM equipamentos WHERE ano=? {where}", con,
+                           params=(ano,*params))
 
-    # Cria um buffer em memória para o Excel
-    output = io.BytesIO()
-
-    # Abre o ExcelWriter com engine xlsxwriter
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        # Escreve a planilha frota e estiliza
-        df_frota.to_excel(
-            writer,
-            sheet_name='frota',
-            index=False,
-            startrow=1,      # Deixa uma linha para o cabeçalho manual
-            header=False
-        )
-        # Obtemos referências para aplicar estilo
-        workbook  = writer.book
-        worksheet = writer.sheets['frota']
-
-        # Formato do cabeçalho
-        header_format = workbook.add_format({
-            'bold': True,
-            'text_wrap': True,
-            'valign': 'middle',
-            'align': 'center',
-            'fg_color': '#D7E4BC',   # Cor de fundo (verde claro)
-            'border': 1
+def montar_excel(planilhas: dict[str, pd.DataFrame]) -> bytes:
+    """planilhas = {"nome_aba": df, ...}  →  bytes .xlsx"""
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="xlsxwriter") as wr:
+        wb = wr.book
+        header_fmt = wb.add_format({
+            "bold": True, "fg_color": "#D7E4BC",
+            "align": "center", "valign": "vcenter", "border":1
         })
+        cell_fmt   = wb.add_format({"border":1, "valign":"top"})
 
-        # Formato padrão das células (dados)
-        cell_format = workbook.add_format({
-            'border': 1,
-            'valign': 'top'
-        })
+        for aba, df in planilhas.items():
+            df.to_excel(wr, sheet_name=aba, index=False, startrow=1, header=False)
+            ws = wr.sheets[aba]
 
-        # Escreve o cabeçalho manualmente, aplicando o header_format
-        for col_num, col_name in enumerate(df_frota.columns):
-            worksheet.write(0, col_num, col_name, header_format)
+            for col, nome in enumerate(df.columns):
+                ws.write(0, col, nome, header_fmt)
+                largura = max(len(nome), df.iloc[:, col].astype(str).map(len).max()) + 2
+                ws.set_column(col, col, largura, cell_fmt)
+    return buf.getvalue()
 
-        # Ajusta largura das colunas dinamicamente
-        for i, col in enumerate(df_frota.columns):
-            # Tamanho máximo entre o nome da coluna e o maior valor daquela coluna
-            col_width = max(
-                df_frota[col].astype(str).map(len).max(),
-                len(col)
-            )
-            # Dá um pequeno acréscimo (2) para folga
-            worksheet.set_column(i, i, col_width + 2, cell_format)
-
-        # --------------------------------------------------------------------
-        # Repetimos o mesmo processo para a planilha frota_2025
-        df_frota_2025.to_excel(
-            writer,
-            sheet_name='frota_2025',
-            index=False,
-            startrow=1,
-            header=False
-        )
-        worksheet_2025 = writer.sheets['frota_2025']
-
-        # Escreve o cabeçalho manualmente
-        for col_num, col_name in enumerate(df_frota_2025.columns):
-            worksheet_2025.write(0, col_num, col_name, header_format)
-
-        # Ajusta largura das colunas dinamicamente
-        for i, col in enumerate(df_frota_2025.columns):
-            col_width = max(
-                df_frota_2025[col].astype(str).map(len).max(),
-                len(col)
-            )
-            worksheet_2025.set_column(i, i, col_width + 2, cell_format)
-
-    # Recupera o conteúdo binário do arquivo Excel
-    excel_data = output.getvalue()
-    return excel_data
-
+# ───────── página ─────────
 def run():
-    # Checa se o usuário está logado
     check_user_logged_in()
+    user = st.session_state.user
 
-    st.title("Exportação do Sistema")
-    st.write("Nesta página, você pode exportar os dados de Gestão de Frota para Excel com uma leve estilização.")
+    st.title("📤 Exportação de Equipamentos")
 
-    # Botão para exportar
+    if user["tipo_usuario"] == "admin":
+        st.info("Você é **administrador** — o arquivo terá duas abas: 2024 e 2025 (todos os dados).")
+    else:
+        st.info("Você é **usuário comum** — o arquivo terá apenas seus equipamentos de 2025.")
+
     if st.button("Gerar arquivo Excel"):
-        xlsx_file = export_data_to_excel()
-        # Cria um botão de download
-        st.download_button(
-            label="Baixar dados em Excel",
-            data=xlsx_file,
-            file_name="export_frota.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        try:
+            if user["tipo_usuario"] == "admin":
+                df24 = ler_equipamentos(2024)
+                df25 = ler_equipamentos(2025)
+                if df24.empty and df25.empty:
+                    st.warning("Não há registros em 2024 nem 2025.")
+                    return
+                xlsx = montar_excel({"equipamentos_2024": df24,
+                                     "equipamentos_2025": df25})
+                nome = "equipamentos_2024_2025_COMPLETO.xlsx"
+
+            else:  # comum
+                df25 = ler_equipamentos(2025, "AND centro_custo_uc=?", (user["setor_codigo"],))
+                if df25.empty:
+                    st.warning("Você não possui registros de 2025.")
+                    return
+                xlsx = montar_excel({f"equipamentos_{user['setor_codigo']}_2025": df25})
+                nome = f"equipamentos_2025_setor_{user['setor_codigo']}.xlsx"
+
+            st.download_button("📥 Baixar Excel", xlsx, nome,
+                               mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        except Exception as e:
+            st.error(f"Erro ao gerar arquivo: {e}")
