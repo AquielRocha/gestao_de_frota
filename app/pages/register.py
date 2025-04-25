@@ -1,49 +1,43 @@
-import re
 import streamlit as st
 from app.services.auth import create_user, get_setor_options
 
+# ------------------------------------------------------------------ #
 def run():
-    st.markdown("""
-    <div style="display: flex; justify-content: center;">
-        <div class="login-title">Crie sua Conta</div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='login-title'>Crie sua Conta</div>",
+                unsafe_allow_html=True)
 
-    # --- FORMULÁRIO DE CADASTRO ---
     with st.form("register_form"):
-        nome = st.text_input("Nome completo", key="nome_reg")
-        email = st.text_input("Email", key="email_reg")
-        senha = st.text_input("Senha", type="password", key="senha_reg")
+        nome  = st.text_input("Nome completo")
+        cpf   = st.text_input("CPF (só números)")
+        email = st.text_input("Email")
+        pwd   = st.text_input("Senha", type="password")
 
-        # Carrega os setores e extrai só o nome dentro dos parênteses
-        setores_raw = get_setor_options()
-        setores_dict = {}  # Mapeia o nome legível para o valor real do banco
-        for s in setores_raw:
-            match = re.search(r"\(([^)]+)\)", s)
-            nome_formatado = match.group(1) if match else s
-            setores_dict[nome_formatado] = s
-
-        if setores_dict:
-            nome_legivel = list(setores_dict.keys())
-            setor_legivel = st.selectbox("Centro de Custo", nome_legivel, key="centro_custo_reg")
-            setor_selecionado = setores_dict[setor_legivel]  # Recupera valor original
+        # ----- select de setor -----
+        setores = get_setor_options()
+        if not setores:
+            st.warning("Nenhum setor cadastrado — chama o admin.")
+            setor_codigo = None
         else:
-            st.warning("Nenhum centro de custo encontrado. Verifique a tabela 'frota'.")
-            setor_selecionado = None
+            label = [f"{s['sigla']} - {s['nome']}" for s in setores]
+            escolha = st.selectbox("Setor / Centro de Custo", label)
+            setor_codigo = next(
+                s["codigo"] for s in setores
+                if f"{s['sigla']} - {s['nome']}" == escolha
+            )
 
-        # Botão de envio
-        submit_register = st.form_submit_button("Cadastrar")
-        if submit_register:
-            if not setor_selecionado:
-                st.error("Por favor, selecione um centro de custo válido.")
+        submit = st.form_submit_button("Cadastrar")
+    # fora do with!
+
+    if submit:
+        if not setor_codigo:
+            st.error("Escolhe um setor válido, pô!")
+        else:
+            ok = create_user(nome, cpf, pwd, email, setor_codigo)
+            if ok:
+                st.success("Cadastro feito! Agora faz login.")
             else:
-                if create_user(nome, email, senha, setor_selecionado):
-                    st.success("Usuário criado com sucesso! Agora você já pode fazer login.")
-                else:
-                    st.error("Este email já está em uso. Tente outro ou faça login.")
+                st.error("CPF ou email já existe, maluco.")
 
-    # Voltar ao login
     if st.button("Voltar ao Login"):
         st.session_state.show_registration = False
         st.rerun()
-
-    st.markdown("</div></div>", unsafe_allow_html=True)

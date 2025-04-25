@@ -1,67 +1,85 @@
 import streamlit as st
 import pandas as pd
-from ydata_profiling import ProfileReport
+import sqlite3
 from app.services.auth import check_user_logged_in
-from app.services.frota_2025_service import get_veiculos_by_setor_ano
-from streamlit_pandas_profiling import st_profile_report
-from pandas_profiling import ProfileReport
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Conexão utilitária
+# ─────────────────────────────────────────────────────────────────────────────
+def get_connection():
+    return sqlite3.connect("app/database/frota.db")
+
+# Puxa todos os equipamentos 2025 do setor
+def get_equipamentos_2025(setor_codigo: int):
+    sql = """
+    SELECT *
+      FROM equipamentos
+     WHERE centro_custo_uc = ?
+       AND ano = 2025
+    """
+    with get_connection() as con:
+        df = pd.read_sql(sql, con, params=(setor_codigo,))
+    return df
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Página
+# ─────────────────────────────────────────────────────────────────────────────
 def run():
     check_user_logged_in()
-    setor = st.session_state.user["setor_id"]
-    st.title("📋 Equipamentos 2025")
+    setor_codigo = st.session_state.user["setor_codigo"]
 
-    rows, columns = get_veiculos_by_setor_ano(setor)
+    st.title("📋 Equipamentos (Ano 2025)")
 
-    if not rows:
-        st.info("Nenhum veículo encontrado para este setor.")
+    df = get_equipamentos_2025(setor_codigo)
+
+    if df.empty:
+        st.info("Nenhum equipamento 2025 encontrado para este setor.")
         return
 
-    df = pd.DataFrame(rows, columns=columns)
-    df = df.drop(columns=['id', 'usuario_id', 'setor_id'], errors='ignore')
+    # Remove colunas internas
+    df = df.drop(columns=["codigo", "centro_custo_uc"], errors="ignore")
 
-    # Remove vírgulas de textos
-    for col in df.select_dtypes(include=['object']).columns:
-        df[col] = df[col].str.replace(',', '', regex=False)
+    # Limpa vírgulas em colunas texto
+    for col in df.select_dtypes(include=["object"]).columns:
+        df[col] = df[col].str.replace(",", "", regex=False)
 
-    # Converte inteiros corretamente
-    for col in df.select_dtypes(include=['int']).columns:
-        df[col] = df[col].astype(int)
-
-    # Renomeia colunas com ortografia correta
-    colunas_legiveis = {
-        "data_preenchimento": "Data de Preenchimento",
-        "tipo_bem": "Tipo do Bem",
-        "subtipo_bem": "Subtipo",
-        "placa": "Placa",
-        "numero_chassi": "Número do Chassi",
-        "renavam": "RENAVAM",
-        "numero_patrimonio": "Nº Patrimônio",
-        "proprietario": "Proprietário",
-        "marca": "Marca",
-        "modelo": "Modelo",
-        "ano_fabricacao": "Ano de Fabricação",
-        "ano_modelo": "Ano do Modelo",
-        "cor": "Cor",
-        "combustivel": "Combustível",
-        "status": "Status",
-        "observacao": "Observação",
-        "adicionar_mais": "Adição Extra?"
+    # Renomeia para títulos mais legíveis
+    rename_map = {
+        "identificacao":      "Identificação",
+        "fabricante":         "Marca",
+        "modelo":             "Modelo",
+        "ano_fabricacao":     "Ano de Fabricação",
+        "ano_modelo":         "Ano do Modelo",
+        "cor":                "Cor",
+        "tipo_combustivel":   "Combustível",
+        "tipo_bem":           "Tipo do Bem",
+        "subtipo_bem":        "Subtipo",
+        "status":             "Status",
+        "observacoes":        "Observação",
+        "motorizacao":        "Motorização",
+        "tipo_propriedade":   "Tipo de Propriedade",
+        "uso_km":             "Uso (km/horas)",
+        "data_aquisicao":     "Data Aquisição"
     }
-    df = df.rename(columns=colunas_legiveis)
+    df = df.rename(columns=rename_map)
 
-    # 🎯 Campos de filtro
+    # ───── filtros ─────
     with st.expander("🔎 Filtrar Equipamentos"):
         col1, col2, col3 = st.columns(3)
-        tipo = col1.selectbox("Tipo do Bem", options=["Todos"] + sorted(df["Tipo do Bem"].dropna().unique().tolist()))
-        marca = col2.selectbox("Marca", options=["Todos"] + sorted(df["Marca"].dropna().unique().tolist()))
-        modelo = col3.selectbox("Modelo", options=["Todos"] + sorted(df["Modelo"].dropna().unique().tolist()))
-        
-        col4, col5, col6 = st.columns(3)
-        placa = col4.text_input("Buscar por Placa")
-        status = col5.selectbox("Status", options=["Todos"] + sorted(df["Status"].dropna().unique().tolist()))
-        ano = col6.selectbox("Ano de Fabricação", options=["Todos"] + sorted(df["Ano de Fabricação"].dropna().unique().tolist()))
+        tipo = col1.selectbox("Tipo do Bem",
+                              ["Todos"] + sorted(df["Tipo do Bem"].dropna().unique()))
+        marca = col2.selectbox("Marca",
+                               ["Todos"] + sorted(df["Marca"].dropna().unique()))
+        modelo = col3.selectbox("Modelo",
+                                ["Todos"] + sorted(df["Modelo"].dropna().unique()))
 
-        # Aplica os filtros
+        col4, col5 = st.columns(2)
+        status = col4.selectbox("Status",
+                                ["Todos"] + sorted(df["Status"].dropna().unique()))
+        ano_fab = col5.selectbox("Ano de Fabricação",
+                                 ["Todos"] + sorted(df["Ano de Fabricação"].dropna().unique()))
+
+        # aplica filtros
         if tipo != "Todos":
             df = df[df["Tipo do Bem"] == tipo]
         if marca != "Todos":
@@ -70,22 +88,19 @@ def run():
             df = df[df["Modelo"] == modelo]
         if status != "Todos":
             df = df[df["Status"] == status]
-        if ano != "Todos":
-            df = df[df["Ano de Fabricação"] == ano]
-        if placa:
-            df = df[df["Placa"].str.contains(placa, case=False, na=False)]
+        if ano_fab != "Todos":
+            df = df[df["Ano de Fabricação"] == ano_fab]
 
-    # Tabela interativa moderna com ordenação e rolagem horizontal
-    st.subheader("📑 Equipamentos Encontrados")
+    # ───── tabela ─────
+    st.subheader("📑 Equipamentos Homologados e Atualizados!")
     st.dataframe(
         df,
         use_container_width=True,
         hide_index=True,
-        column_config={col: st.column_config.Column(label=col) for col in df.columns},
-        height=500
+        height=500,
+        column_config={c: st.column_config.Column(label=c) for c in df.columns}
     )
-     # Perfil completo dos dados
-    with st.expander("📊 Análise Exploratória com Pandas Profiling"):
-        if st.checkbox("Gerar relatório exploratório dos dados filtrados"):
-            profile = ProfileReport(df, title="Relatório - Equipamentos 2025", explorative=True)
-            st_profile_report(profile)
+
+# ─────────────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    run()

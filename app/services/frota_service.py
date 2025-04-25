@@ -1,5 +1,3 @@
-# app/services/frota_service.py
-
 import sqlite3
 
 def get_connection(db_path="app/database/veiculos.db"):
