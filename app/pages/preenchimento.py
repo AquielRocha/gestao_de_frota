@@ -21,9 +21,12 @@ def get_distinct(col:str)->list[str]:
         )
 
 # map status → oficial
-STATUS_MAP = {"ativo":"Ativo","inativo":"Inativo","bloqueado":"Bloqueado","cancelado":"Cancelado",
-              "canelado":"Cancelado","cedido":"Cedido","danificado":"Danificado",
-              "manutencao":"Manutenção","manutenção":"Manutenção","baixado":"Baixado"}
+STATUS_MAP = {
+    "ativo": "Ativo (em uso diário)",
+    "ocioso": "Ocioso (bem móvel que se encontra em perfeitas condições de uso, mas não é aproveitado)",
+    "antieconomico": "Antieconômico (bem móvel cuja manutenção seja onerosa ou cujo rendimento seja precário, em virtude de uso prolongado, desgaste prematuro ou obsoletismo)",
+    "irrecuperavel": "Irrecuperável (bem móvel que não pode ser utilizado para o fim a que se destina devido à perda de suas características ou em razão de ser o seu custo de recuperação mais de cinquenta por cento do seu valor de mercado ou de a análise do seu custo e benefício demonstrar ser injustificável a sua recuperação)"
+}
 status_oficiais = sorted(set(STATUS_MAP.values()))
 
 # anos para select
@@ -47,10 +50,7 @@ def run():
     .frota-table tbody tr:nth-child(odd){background:var(--accent)}
     .frota-table tbody tr:hover{background:var(--primary-light);color:#fff}
     </style>
-    <div style="margin-bottom:16px">
-      <input id="searchInput" placeholder="Buscar itens..."
-       style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:14px">
-    </div>
+
     """, unsafe_allow_html=True)
 
     # usuário
@@ -76,7 +76,7 @@ def run():
     ]}
 
     if not df24.empty:
-        st.markdown("**Filtro: Equipamentos 2024 ainda NÃO migrados (Identificação ↓)**")
+        st.markdown(" Equipamentos 2024 ainda NÃO migrados (Identificação ↓")
         st.markdown(f'<div class="frota-card">{df24[["identificacao","fabricante","modelo","ordem_num_patrimonio"]].rename(columns={"identificacao":"Identificação","ordem_num_patrimonio":"Patrimônio"}).to_html(index=False,classes="frota-table",border=0)}</div>',unsafe_allow_html=True)
         escolha = st.selectbox("Copiar dados de 2024", [""]+df24["identificacao"].astype(str).unique().tolist())
         if escolha:
