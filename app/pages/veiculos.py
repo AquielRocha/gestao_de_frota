@@ -17,17 +17,15 @@ def load_data(user_id: int, setor: int, is_admin: bool) -> pd.DataFrame:
         if is_admin:
             sql = "SELECT * FROM equipamentos"
             return pd.read_sql(sql, con)
-        # usuário comum: só vê equipamentos de seu setor que ele atualizou
-        # obtém códigos atualizados por ele
+        # usuário comum: só vê equipamentos que ele atualizou
         codes_sql = "SELECT DISTINCT equipamento_codigo FROM historico_atualizacoes WHERE usuario_id = ?"
         codes = [r[0] for r in con.execute(codes_sql, (user_id,)).fetchall()]
         if not codes:
             return pd.DataFrame(columns=[])  # nenhum equipamento atualizado
-        # carrega equipamentos filtrando setor e códigos
+        # montar placeholders dinamicamente
         placeholders = ",".join("?" for _ in codes)
-        sql = f"SELECT * FROM equipamentos WHERE setor_codigo = ? AND codigo IN ({placeholders})"
-        params = [setor] + codes
-        return pd.read_sql(sql, con, params=params)
+        sql = f"SELECT * FROM equipamentos WHERE codigo IN ({placeholders})"
+        return pd.read_sql(sql, con, params=codes)
 
 # Página principal
 def run():
