@@ -22,9 +22,8 @@ def run():
       <p>Utilize os prefixos de identificação conforme o tipo de equipamento.
          O código será composto por 3 letras + 4 dígitos sequenciais.</p>
     </div>""", unsafe_allow_html=True)
-    st.image("app/assets/tere.png",
-             caption="Tabela de Nomenclatura - DFROT",
-             use_container_width=True)
+    st.image("app/assets/tere.png", caption="Tabela de Nomenclatura - DFROT")
+
 
     # ── Card 2 ─────────────────────────────────────────────
     st.markdown("""
@@ -34,8 +33,7 @@ def run():
          Proprietário e demais informações técnicas do equipamento.</p>
     </div>""", unsafe_allow_html=True)
     st.image("app/assets/tere2.png",
-             caption="Tela de Cadastro - Maxifrota",
-             use_container_width=True)
+             caption="Tela de Cadastro - Maxifrota",)
 
     # ── Card 3 ─────────────────────────────────────────────
     st.markdown("""
@@ -45,7 +43,6 @@ def run():
          por 3 letras + 4 números, de acordo com a nomenclatura definida.</p>
     </div>""", unsafe_allow_html=True)
     st.image("app/assets/tere3.png",
-             caption="Exemplo de Código de Frota",
-             use_container_width=True)
+             caption="Exemplo de Código de Frota")
 
     st.success("Para dúvidas, entre em contato com a DFROT.")

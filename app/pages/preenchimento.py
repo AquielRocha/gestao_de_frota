@@ -22,10 +22,13 @@ def get_distinct(col:str)->list[str]:
 
 # map status → oficial
 STATUS_MAP = {
-    "ativo": "Ativo (em uso diário)",
-    "ocioso": "Ocioso (bem móvel que se encontra em perfeitas condições de uso, mas não é aproveitado)",
-    "antieconomico": "Antieconômico (bem móvel cuja manutenção seja onerosa ou cujo rendimento seja precário, em virtude de uso prolongado, desgaste prematuro ou obsoletismo)",
-    "irrecuperavel": "Irrecuperável (bem móvel que não pode ser utilizado para o fim a que se destina devido à perda de suas características ou em razão de ser o seu custo de recuperação mais de cinquenta por cento do seu valor de mercado ou de a análise do seu custo e benefício demonstrar ser injustificável a sua recuperação)"
+    "novo": "Bem em perfeito estado, sem uso ou com uso muito recente, sem sinais de desgaste.",
+    "bom": "Bem usado, mas em boas condições físicas e de funcionamento.",
+    "regular": "Bem com sinais evidentes de uso, algum desgaste, mas ainda funcional.",
+    "ocioso": "Bem em bom estado, mas sem uso por falta de necessidade ou planejamento.",
+    "ocioso_ocioso": "Bem totalmente parado e sem previsão de uso. (Pode ser considerado para desfazimento)",
+    "antieconomico": "Bem que gera mais custos de manutenção do que benefícios ou que é obsoleto.",
+    "irrecuperavel": "Bem danificado ou inservível, sem possibilidade de recuperação ou reaproveitamento."
 }
 status_oficiais = sorted(set(STATUS_MAP.values()))
 

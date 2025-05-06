@@ -147,7 +147,7 @@ def main():
                 st.session_state.user = get_user_info(cpf)
                 st.rerun()
             else:
-                st.error("CPF ou senha errados, parceiro.")
+                st.error("CPF ou senha errados consulte o administrador.")
 
         st.markdown("<hr class='login-hr'/>", unsafe_allow_html=True)
         st.markdown("<p class='login-text-center'>Não possui conta?</p>",
